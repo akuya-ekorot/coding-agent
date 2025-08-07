@@ -1,7 +1,7 @@
 import { Agent } from "@mastra/core/agent";
 import { LibSQLStore, LibSQLVector } from "@mastra/libsql";
 import { Memory } from "@mastra/memory";
-import { openrouter } from "@openrouter/ai-sdk-provider";
+import { openai } from "@ai-sdk/openai";
 import {
   checkFileExists,
   createDirectory,
@@ -13,16 +13,16 @@ import {
   readFile,
   runCode,
   runCommand,
-  // runCommandWithStreaming,
   watchDirectory,
   writeFile,
   writeFiles,
-} from "../tools/sandbox";
+} from "../tools/e2b";
 import { fastembed } from "@mastra/fastembed";
 
 export const codingAgent = new Agent({
   name: "Coding Agent",
-  instructions: `# Mastra Coding Agent for E2B Sandboxes
+  instructions: `
+# Mastra Coding Agent for E2B Sandboxes
 
 You are an advanced coding agent that plans, writes, executes, and iterates on code in secure, isolated E2B sandboxes with comprehensive file management, live monitoring, and development workflow capabilities.
 
@@ -58,7 +58,6 @@ You have access to a complete development toolkit:
 ### **Development Workflow**
 - \`watchDirectory\` - Monitor file changes during development, track build processes
 - \`runCommand\` - Execute shell commands (git operations, build scripts, system utilities)
-- \`installPackages\` - Manage npm dependencies for JavaScript/TypeScript projects
 
 ## Enhanced Development Approach
 
@@ -83,10 +82,10 @@ For complex projects (5+ files):
 #### **TypeScript/JavaScript Projects**
 - Initialize with \`package.json\` and proper dependencies
 - Set up TypeScript configuration (\`tsconfig.json\`)
-- Use \`installPackages\` for dependency management
 - Implement live compilation monitoring with \`watchDirectory\`
 - Run build processes with \`runCommand\` for compilation
 - Monitor development with streaming commands for dev servers
+- Use \`runCommand\` for npm installations and environment setup
 
 #### **Python Projects**
 - Set up virtual environments and dependency management
@@ -94,43 +93,6 @@ For complex projects (5+ files):
 - Use \`runCommand\` for pip installations and environment setup
 - Implement testing frameworks and validation
 - Monitor execution and file changes during development
-
-## Enhanced Response Structure
-
-Always provide comprehensive responses for complex projects:
-
-\`\`\`json
-{
-  "analysis": "Brief analysis of requirements and approach selection",
-  "plan": "Detailed step-by-step plan with tool usage strategy",
-  "language": "python | javascript | typescript | multi-language",
-  "environment": {
-    "dependencies": ["list of packages/tools needed"],
-    "structure": "planned directory/file organization"
-  },
-  "execution": {
-    "phase": "current development phase",
-    "summary": "what was accomplished in this iteration",
-    "logs": "key execution logs and outputs",
-    "status": "success | error | in-progress",
-    "performance": "file sizes, execution times, resource usage"
-  },
-  "artifacts": [
-    {
-      "path": "file path",
-      "type": "file type",
-      "description": "purpose and contents",
-      "size": "file size if relevant"
-    }
-  ],
-  "monitoring": {
-    "filesCreated": "count and list of new files",
-    "filesModified": "count and list of changed files",
-    "watchersActive": "any active file monitoring"
-  },
-  "next": "specific next steps or iterations needed"
-}
-\`\`\`
 
 ## Advanced Development Patterns
 
@@ -225,7 +187,7 @@ For sophisticated projects, leverage:
 
 Remember: You are not just a code executor, but a complete development environment that can handle sophisticated, multi-file projects with professional development workflows and comprehensive monitoring capabilities.
 `,
-  model: openrouter("google/gemini-2.5-pro"),
+  model: openai("gpt-4.1"),
   tools: {
     createSandbox,
     runCode,
@@ -239,31 +201,17 @@ Remember: You are not just a code executor, but a complete development environme
     checkFileExists,
     getFileSize,
     watchDirectory,
-    // runCommandWithStreaming,
     runCommand,
   },
   memory: new Memory({
-    storage: new LibSQLStore({
-      url: "file:../../mastra.db",
-    }),
+    storage: new LibSQLStore({ url: "file:../../mastra.db" }),
     options: {
-      threads: {
-        generateTitle: true,
-      },
+      threads: { generateTitle: true },
       semanticRecall: true,
-      workingMemory: {
-        enabled: true,
-      },
+      workingMemory: { enabled: true },
     },
     embedder: fastembed,
-    vector: new LibSQLVector({
-      connectionUrl: "file:../../mastra.db",
-    }),
+    vector: new LibSQLVector({ connectionUrl: "file:../../mastra.db" }),
   }),
-  defaultStreamOptions: {
-    maxSteps: Number.POSITIVE_INFINITY,
-  },
-  defaultGenerateOptions: {
-    maxSteps: Number.POSITIVE_INFINITY,
-  },
+  defaultStreamOptions: { maxSteps: 20 },
 });
